@@ -485,7 +485,23 @@ export async function createLayer<T extends __esri.Layer>(
             const [TileLayer] = await loadModules([
                 'esri/layers/TileLayer'
             ]);
+            let sublayers: __esri.SublayerProperties[];
+            if (!!props.sublayers) {
+                sublayers = props.sublayers;
+                delete props.sublayers;
+            }
             layer = new TileLayer(props);
+            if (!!sublayers) {
+                await layer.load();
+                const tile = layer as unknown as __esri.TileLayer;
+                for (const sublayer of sublayers) {
+                    const subl = tile.sublayers.find(l => l.id === sublayer.id);
+                    subl.title = sublayer.title;
+                    subl.legendEnabled = sublayer.legendEnabled;
+                    subl.popupEnabled = sublayer.popupEnabled;
+                    subl.popupTemplate = sublayer.popupTemplate as any;
+                }
+            }
             break;
         case 'web-tile':
             const [WebTileLayer] = await loadModules([
@@ -498,6 +514,12 @@ export async function createLayer<T extends __esri.Layer>(
                 'esri/layers/ElevationLayer'
             ]);
             layer = new ElevationLayer(props);
+            break;
+        case 'exaggerated-elevation':
+            const [ExaggeratedElevationLayer] = await loadModules([
+                'beginor/ExaggeratedElevationLayer'
+            ]);
+            layer = new ExaggeratedElevationLayer(props);
             break;
         case 'imagery':
             const [ImageryLayer] = await loadModules([
@@ -634,6 +656,13 @@ export function createElevationLayer(
     Object.assign(properties, { type: 'elevation' });
     return createLayer<__esri.ElevationLayer>(properties);
 }
+export function createExaggeratedElevationLayer(
+    properties: { url: string; exaggeration: number; }
+): Promise<__esri.BaseElevationLayer> {
+    Object.assign(properties, { type: 'exaggerated-elevation' });
+    return createLayer<__esri.BaseElevationLayer>(properties);
+}
+
 export function createImageryLayer(
     properties: __esri.ImageryLayerProperties
 ): Promise<__esri.ImageryLayer> {
